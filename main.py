@@ -7,7 +7,7 @@ import time
 def read_shadow_file(file_path):
     shadow_data = []
     # CHANGE THIS FOR WORKFACTOR CHANGES:
-    work_val = 8
+    work_val = 11
     # ---------------------------------
     with open(file_path, 'r') as file:
         for line in file:
@@ -33,22 +33,30 @@ def generate_passwords():
 
 def crack_passwords(shadow_data, potential_passwords):
     cracked_passwords = {}
+    passes = {}
     start_time = time.time()
     curr_ascii = 96
+    algorithm = shadow_data[0][1]
+    workfactor = shadow_data[0][2]
+    salt = shadow_data[0][3]
+    for password in potential_passwords:
+        ascii = ord(password[0])
+        if(ascii != curr_ascii and abs(ascii-curr_ascii) != 32):
+            curr_ascii = ascii
+            print("new char: ", ord(password[0]), "\n")
+        # Hash password with given salt and work factor???
+        updated_salt = f"${algorithm}${workfactor}${salt}"
+        hashed_attempt = bcrypt.hashpw(password.encode(), updated_salt.encode())
+        passes[hashed_attempt] = password
+        # Compare hashed attempt with hashed password from shadow file??
     for username, algorithm, workfactor, salt, hashed_password, alg_wf_sh in shadow_data:
-        for password in potential_passwords:
-            ascii = ord(password[0])
-            if(ascii != curr_ascii and abs(ascii-curr_ascii) != 32):
-                curr_ascii = ascii
-                print("new char: ", ord(password[0]), "\n")
-            # Hash password with given salt and work factor???
-            updated_salt = f"${algorithm}${workfactor}${salt}"
-            hashed_attempt = bcrypt.hashpw(password.encode(), updated_salt.encode())
-            # Compare hashed attempt with hashed password from shadow file??
-            if hashed_attempt == alg_wf_sh.encode():
-                print(f"found a pass: {password}!")
-                cracked_passwords[username] = password
-                break
+        # if hashed_attempt == alg_wf_sh.encode():
+        #     print(f"found a pass: {password}!")
+        #     cracked_passwords[username] = password
+        #     break
+        encoded_pass = alg_wf_sh.encode()
+        cracked_passwords[username] = passes[encoded_pass]
+        print(f"found a pass: {passes[alg_wf_sh.encode()]}!")
     end_time = time.time()
     time_taken = end_time - start_time
     return cracked_passwords, time_taken
